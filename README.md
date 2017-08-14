@@ -1,56 +1,101 @@
-# Electron Release Server
-[![GitHub stars](https://img.shields.io/github/stars/ArekSredzki/electron-release-server.svg)](https://github.com/ArekSredzki/electron-release-server/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/ArekSredzki/electron-release-server.svg)](https://github.com/ArekSredzki/electron-release-server/network)
-[![Join the chat at https://gitter.im/ArekSredzki/electron-release-server](https://badges.gitter.im/ArekSredzki/electron-release-server.svg)](https://gitter.im/ArekSredzki/electron-release-server?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
->A node web server which serves & manages releases of the your [Electron](http://electron.atom.io) App, and is fully compatible with [Squirrel](https://github.com/Squirrel) Auto-updater (which is built into Electron).
+# Electron Release Server (customized for Merck)
 
-[![Electron Release Server Demo](https://j.gifs.com/wpyY1X.gif)](https://youtu.be/lvT7rfB01iA)
+## Installation
+### Database (MySQL)
+1. Create databases
+``` sql
+CREATE DATABASE electron_release_server ;
+```
+2. Create 'electron_release_server_user' user
+3. Grant 'OWNER' level permissions for the user for the database above (all permission except GRANT OPTION)
 
-_Note: Despite being advertised as a release server for Electron applications, it would work for **any application using Squirrel**._
+    **A database schema will be created automatically once the application starts.*
 
-If you host your project on your Github **and** do not need a UI for your app, then [Nuts](https://github.com/GitbookIO/nuts) is probably what you're looking for. Otherwise, you're in the same boat as I was, and you've found the right place!
+### Application server
+1. Install GIT
+``` bash
+sudo apt-get install git
+```
+2. Create a directory for an application
+``` bash
+mkdir electron-release-server
+```
+3. Clone a repository
+``` bash
+GIT_SSL_NO_VERIFY=1
+git clone https://<user_name>@git.epam.com/mrc-assy/electron-release-server.git
+```
+4. Install latest version of NodeJS
+``` bash
+curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
+sudo apt-get install nodejs -y
 
-## Advisory Notice
-**IMPORTANT:** The release of Angular `1.6.0` has broken all `electron-release-server` versions prior to `1.4.2`. Please use the instructions under the `Maintenance` heading below to update your fork! Sorry for the inconvenience.
+nodejs -v # should be 8.3.0 or higher
+npm -v #should be 5.3.0 or higher
+```
+5. Install Required NPM modules
+``` bash
+npm install
+```
+6. Define environment variables
+``` bash
+NODE_ENV=production
+```
+7. Update configuration files
+``` js
+// config/connection.js
 
-## Features
-- :sparkles: Docker :whale: support (thanks to EvgeneOskin)!
-- :sparkles: Awesome release management interface powered by [AngularJS](https://angularjs.org)
-    - Authenticates with LDAP, easy to modify to another authentication method if needed
-- :sparkles: Store assets on server disk, or Amazon S3 (with minor modifications)
-    - Use pretty much any database for persistence, thanks to [Sails](http://sailsjs.org) & [Waterline](http://waterlinejs.org)
-- :sparkles: Simple but powerful download urls (**NOTE:** when no assets are uploaded, server returns `404` by default):
-    - `/download/latest`
-    - `/download/latest/:platform`
-    - `/download/:version`
-    - `/download/:version/:platform`
-    - `/download/:version/:platform/:filename`
-    - `/download/channel/:channel`
-    - `/download/channel/:channel/:platform`
-- :sparkles: Support pre-release channels (`beta`, `alpha`, ...)
-- :sparkles: Auto-updates with [Squirrel](https://github.com/Squirrel):
-    - Update URLs provided: `/update/:platform/:version[/:channel]`
-    - Mac uses `*.dmg` and `*.zip`
-    - Windows uses `*.exe` and `*.nupkg`
-- :sparkles: Serve the perfect type of assets: `.zip` for Squirrel.Mac, `.nupkg` for Squirrel.Windows, `.dmg` for Mac users, ...
-- :sparkles: Release notes endpoint
-    - `/notes/:version`
+mysqlServer: {
+    adapter: 'sails-mysql',
+    host: 'localhost',
+    user: 'electron_release_server_user',
+    password: '<password>',
+    database: 'electron_release_server'
+},
+```
+``` js
+// config/files.js
 
-**NOTE:** if you don't provide the appropriate type of file for Squirrel you won't be able to update your app since the update endpoint will not return a JSON. (`.zip` for Squirrel.Mac, `.nupkg` for Squirrel.Windows).
+dirname: '~/electron-release-server/assets'
+```
+``` js
+// config/env/production.js
 
-## Deploy it / Start it
+module.exports = {
+  models: {
+    connection: 'mysqlServer',
+    migrate: 'safe'
+  },
 
-[Follow our guide to deploy Electron Release Server](docs/deploy.md).
+  port: 80,
 
-## Auto-updater / Squirrel
+  log: {
+    level: "silent"
+  },
 
-This server provides an endpoint for [Squirrel auto-updater](https://github.com/atom/electron/blob/master/docs/api/auto-updater.md), it supports both [OS X](docs/update-osx.md) and [Windows](docs/update-windows.md).
+  appUrl: 'http://<your host name>',
+
+  auth: {
+    static: {
+      username: 'admin',
+      password: '<your password>'
+    },
+
+    secret: '2xSqEsM4dtYQcNd5V6FBJHsqzMMOHkftiCviyzUlvtZ2kX88FB7kfhZTYJo2daj'
+  },
+
+  jwt: {
+    token_secret: 'pCGoKop8bsyp9avlngPSPVw2hitfi0VGgVjjAygYLKTonXsYq0xa4uGKbSt6JFP'
+  }
+};
+```
+8. Start an application
+```bash
+sudo npm start --prod
+```
 
 ## Documentation
-[Check out the documentation](docs/) for more details.
-
-## Building Releases
-I highly recommend using [electron-builder](https://github.com/loopline-systems/electron-builder) for packaging & releasing your applications. Once you have built your app with that, you can upload the artifacts for your users right away!
+Original documentation for the project could be found [here](https://github.com/ArekSredzki/electron-release-server/tree/master/docs).
 
 ## Maintenance
 You should keep your fork up to date with the electron-release-server master.
@@ -61,9 +106,6 @@ git remote add upstream https://github.com/ArekSredzki/electron-release-server.g
 git fetch upstream
 git rebase upstream/master
 ```
-
-## Credit
-This project has been built from the Sails.js up by Arek Sredzki, with inspiration from [nuts](https://github.com/GitbookIO/nuts).
 
 ## License
 [MIT License](LICENSE.md)
